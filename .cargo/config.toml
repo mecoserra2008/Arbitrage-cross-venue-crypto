@@ -1,0 +1,35 @@
+# Cargo build configuration for maximum performance
+
+[build]
+rustflags = [
+    "-C", "target-cpu=native",        # Use all CPU features available
+    "-C", "opt-level=3",               # Maximum optimization
+]
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = [
+    "-C", "target-cpu=native",
+    "-C", "target-feature=+avx2,+fma", # Enable AVX2 and FMA instructions
+    "-C", "llvm-args=-enable-machine-outliner=never", # Reduce code size variance
+]
+
+[target.x86_64-apple-darwin]
+rustflags = [
+    "-C", "target-cpu=native",
+    "-C", "target-feature=+avx2,+fma",
+]
+
+[target.x86_64-pc-windows-msvc]
+rustflags = [
+    "-C", "target-cpu=native",
+    "-C", "target-feature=+avx2,+fma",
+]
+
+# Profile-guided optimization support
+[profile.pgo-generate]
+inherits = "release"
+rustflags = ["-C", "profile-generate=/tmp/pgo-data"]
+
+[profile.pgo-use]
+inherits = "release"
+rustflags = ["-C", "profile-use=/tmp/pgo-data/merged.profdata"]

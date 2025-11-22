@@ -34,18 +34,21 @@ impl OrderBookManager {
             .map(|book| book.snapshot())
     }
 
+    #[inline(always)]
     pub fn get_best_bid(&self, exchange: Exchange, symbol: &Symbol) -> Option<PriceLevel> {
         self.books
             .get(&(exchange, symbol.clone()))
             .and_then(|book| book.best_bid().copied())
     }
 
+    #[inline(always)]
     pub fn get_best_ask(&self, exchange: Exchange, symbol: &Symbol) -> Option<PriceLevel> {
         self.books
             .get(&(exchange, symbol.clone()))
             .and_then(|book| book.best_ask().copied())
     }
 
+    #[inline(always)]
     pub fn get_spread(&self, exchange: Exchange, symbol: &Symbol) -> Option<Decimal> {
         self.books
             .get(&(exchange, symbol.clone()))
@@ -118,14 +121,17 @@ impl OrderBook {
         }
     }
 
+    #[inline(always)]
     pub fn best_bid(&self) -> Option<&PriceLevel> {
         self.bids.first()
     }
 
+    #[inline(always)]
     pub fn best_ask(&self) -> Option<&PriceLevel> {
         self.asks.first()
     }
 
+    #[inline(always)]
     pub fn spread(&self) -> Option<Decimal> {
         match (self.best_bid(), self.best_ask()) {
             (Some(bid), Some(ask)) => Some(ask.price - bid.price),
@@ -133,6 +139,7 @@ impl OrderBook {
         }
     }
 
+    #[inline(always)]
     pub fn mid_price(&self) -> Option<Decimal> {
         match (self.best_bid(), self.best_ask()) {
             (Some(bid), Some(ask)) => Some((bid.price + ask.price) / Decimal::TWO),
