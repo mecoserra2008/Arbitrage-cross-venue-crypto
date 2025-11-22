@@ -1,0 +1,25 @@
+[package]
+name = "arbitrage-engine"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+arbitrage-core = { path = "../core" }
+arbitrage-exchanges = { path = "../exchanges" }
+
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rust_decimal.workspace = true
+rust_decimal_macros.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+dashmap.workspace = true
+parking_lot.workspace = true
+metrics.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }

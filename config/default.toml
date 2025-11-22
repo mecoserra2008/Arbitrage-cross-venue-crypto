@@ -1,0 +1,37 @@
+[trading]
+enabled_exchanges = ["Binance", "Bybit", "OKX"]
+symbols = [
+    { base = "BTC", quote = "USDT" },
+    { base = "ETH", quote = "USDT" },
+    { base = "SOL", quote = "USDT" },
+]
+
+[arbitrage]
+min_profit_bps = 5
+max_position_size = 10000
+max_slippage_bps = 10
+min_liquidity = 50000
+scan_interval_ms = 100
+
+[risk]
+max_total_exposure = 500000
+max_loss_per_trade = 1000
+max_daily_loss = 5000
+max_drawdown_pct = 10
+max_open_positions = 10
+max_leverage = 5
+
+[execution]
+use_market_orders = true
+order_timeout_ms = 5000
+max_retries = 3
+
+[monitoring]
+metrics_enabled = true
+metrics_port = 9090
+log_level = "info"
+alert_webhook_url = ""
+
+[database]
+enabled = false
+url = "postgresql://localhost/arbitrage"
