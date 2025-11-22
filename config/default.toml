@@ -35,3 +35,59 @@ alert_webhook_url = ""
 [database]
 enabled = false
 url = "postgresql://localhost/arbitrage"
+
+# ===== ENHANCED SAFETY FEATURES (v2.0) =====
+
+[validation]
+# Orderbook validation
+max_orderbook_age_ms = 1000        # Maximum orderbook staleness (1 second)
+min_orderbook_depth = 5            # Minimum price levels required
+max_spread_bps = 100               # Maximum acceptable spread (1%)
+
+# Liquidity validation
+min_liquidity_value = 100000       # Minimum $100k liquidity
+min_depth_levels = 10              # Minimum depth for institutional
+max_slippage_bps = 20              # Maximum 20 bps slippage (0.2%)
+
+[deduplication]
+opportunity_cooldown_ms = 5000     # 5 second cooldown between same opportunities
+cleanup_interval_ms = 60000        # Clean up old entries every 60s
+max_cache_size = 1000              # Maximum cached opportunities
+
+[reconciliation]
+interval_seconds = 30              # Reconcile positions every 30 seconds
+max_discrepancy_tolerance = 0.000001  # Maximum tolerated position difference
+max_reconciliation_errors = 3      # Alert after 3 consecutive failures
+
+[inventory]
+max_per_exchange = 10.0            # Maximum 10 BTC per exchange
+max_net_inventory = 15.0           # Maximum 15 BTC net across all exchanges
+auto_hedge_enabled = true          # Enable automatic hedging
+hedge_threshold = 0.01             # Hedge when deviation > 0.01
+target_inventory = 0.0             # Target net inventory (market neutral)
+
+[rate_limiting]
+# Token bucket rate limiters per exchange
+binance_capacity = 1200            # 1200 request weight
+binance_refill_per_minute = 1200   # Refill at 1200/min
+
+bybit_capacity = 120               # 120 requests
+bybit_refill_per_minute = 120      # Refill at 120/min
+
+okx_capacity = 100                 # 100 requests
+okx_refill_per_second = 50         # Refill at 50/sec
+
+[websocket]
+# WebSocket connection management
+max_reconnect_attempts = 5         # Maximum reconnection attempts (institutional)
+base_backoff_ms = 500              # Initial backoff delay
+max_backoff_ms = 30000             # Maximum backoff delay (30 seconds)
+ping_interval_seconds = 30         # Send ping every 30 seconds
+connection_timeout_ms = 10000      # 10 second connection timeout
+
+[precision]
+# Exchange-specific precision (overrides defaults if needed)
+enforce_lot_size = true            # Enforce lot size constraints
+enforce_tick_size = true           # Enforce price tick constraints
+enforce_min_notional = true        # Enforce minimum notional value
+round_to_exchange_precision = true # Round all values to exchange precision
