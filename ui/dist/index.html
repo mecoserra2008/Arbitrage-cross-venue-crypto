@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arbitrage Bot - Multi-Venue Real-Time Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #14141f;
+            --bg-tertiary: #1e1e2e;
+            --border-color: #2a2a3e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #9ca3af;
+            --accent-primary: #667eea;
+            --accent-secondary: #764ba2;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 2400px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            padding: 20px 24px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-active {
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        .status-inactive {
+            background: var(--danger);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.15); }
+        }
+
+        .controls-panel {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-primary {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .emergency-stop {
+            background: var(--danger);
+            border: 2px solid #dc2626;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 12px 24px;
+        }
+
+        /* Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-badge {
+            background: var(--bg-tertiary);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Price Charts */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 16px;
+        }
+
+        canvas {
+            max-height: 100%;
+        }
+
+        /* Venue Comparison */
+        .venue-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .venue-card {
+            background: var(--bg-tertiary);
+            padding: 16px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .venue-card.best-bid {
+            border-color: var(--success);
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .venue-card.best-ask {
+            border-color: var(--info);
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .venue-name {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--accent-primary);
+        }
+
+        .price-display {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .price-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .price-value {
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+        }
+
+        .price-bid {
+            color: var(--success);
+        }
+
+        .price-ask {
+            color: var(--info);
+        }
+
+        .spread-value {
+            font-size: 12px;
+            color: var(--warning);
+            margin-top: 4px;
+        }
+
+        /* Liquidity Meters */
+        .liquidity-meter {
+            margin-top: 12px;
+        }
+
+        .liquidity-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .liquidity-bar {
+            height: 6px;
+            background: var(--bg-primary);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .liquidity-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-primary), var(--success));
+            transition: width 0.3s;
+            position: relative;
+        }
+
+        .liquidity-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Spread Chart */
+        .spread-history {
+            height: 200px;
+            margin-top: 16px;
+        }
+
+        /* Opportunity Feed */
+        .opportunity-feed {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .opportunity-item {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 4px solid var(--success);
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: center;
+            transition: all 0.3s;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .opportunity-item:hover {
+            background: #252541;
+            transform: translateX(4px);
+        }
+
+        .opportunity-item.high-profit {
+            border-left-color: #fbbf24;
+            box-shadow: 0 0 12px rgba(251, 191, 36, 0.2);
+        }
+
+        .opp-info {
+            flex: 1;
+        }
+
+        .opp-route {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .exchange-badge {
+            background: var(--accent-primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin: 0 4px;
+        }
+
+        .opp-details {
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 12px;
+        }
+
+        .opp-profit {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .opp-timestamp {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .stat-card {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+        }
+
+        .stat-value.positive {
+            color: var(--success);
+        }
+
+        .stat-value.negative {
+            color: var(--danger);
+        }
+
+        /* Orderbook Depth */
+        .orderbook-depth {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .depth-side {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .depth-header {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .depth-bids {
+            border-left: 3px solid var(--success);
+        }
+
+        .depth-asks {
+            border-left: 3px solid var(--danger);
+        }
+
+        .depth-level {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            padding: 4px;
+            position: relative;
+        }
+
+        .depth-level::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            background: var(--accent-primary);
+            opacity: 0.1;
+            z-index: 0;
+        }
+
+        .depth-bids .depth-level::before {
+            background: var(--success);
+        }
+
+        .depth-asks .depth-level::before {
+            background: var(--danger);
+        }
+
+        .depth-level > span {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Alert System */
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-primary);
+        }
+
+        /* Update indicator */
+        .update-flash {
+            animation: flash 0.5s ease-out;
+        }
+
+        @keyframes flash {
+            0% { background: rgba(102, 126, 234, 0.3); }
+            100% { background: transparent; }
+        }
+
+        /* Latency indicator */
+        .latency-indicator {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .latency-good {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .latency-medium {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .latency-bad {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        /* Symbol selector */
+        .symbol-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .symbol-tab {
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .symbol-tab:hover {
+            background: var(--bg-secondary);
+        }
+
+        .symbol-tab.active {
+            border-color: var(--accent-primary);
+            background: var(--bg-secondary);
+            color: var(--accent-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="header-left">
+                <h1>
+                    <span class="status-indicator status-inactive" id="status-indicator"></span>
+                    Multi-Venue Arbitrage Dashboard
+                </h1>
+                <span class="latency-indicator latency-good" id="system-latency">~70μs</span>
+            </div>
+            <div class="controls-panel">
+                <button class="btn btn-primary" id="btn-start">▶ Start Trading</button>
+                <button class="btn btn-danger emergency-stop" id="btn-emergency-stop">⛔ EMERGENCY STOP</button>
+            </div>
+        </header>
+
+        <!-- Alerts Container -->
+        <div id="alerts-container"></div>
+
+        <!-- Symbol Selector -->
+        <div class="symbol-tabs">
+            <div class="symbol-tab active" data-symbol="BTC/USDT">BTC/USDT</div>
+            <div class="symbol-tab" data-symbol="ETH/USDT">ETH/USDT</div>
+            <div class="symbol-tab" data-symbol="SOL/USDT">SOL/USDT</div>
+        </div>
+
+        <!-- Main Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Price Comparison Chart -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <div class="card-title">📊 Real-Time Price Comparison</div>
+                    <div class="card-badge" id="price-update-time">Live</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="price-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Venue Comparison -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">🏦 Venue Prices</div>
+                    <div class="card-badge" id="venue-count">3 Exchanges</div>
+                </div>
+                <div class="venue-grid" id="venue-grid">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Spread History -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">📈 Spread History</div>
+                    <div class="card-badge" id="spread-status">Monitoring</div>
+                </div>
+                <div class="chart-container spread-history">
+                    <canvas id="spread-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Liquidity Depth Visualization -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <div class="card-title">💧 Orderbook Depth - <span id="depth-exchange">Binance</span></div>
+                    <div class="card-badge" id="depth-timestamp">Real-time</div>
+                </div>
+                <div class="orderbook-depth" id="orderbook-depth">
+                    <div class="depth-side depth-bids">
+                        <div class="depth-header">BIDS (Support)</div>
+                        <div id="bids-container"></div>
+                    </div>
+                    <div class="depth-side depth-asks">
+                        <div class="depth-header">ASKS (Resistance)</div>
+                        <div id="asks-container"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Liquidity Constraints -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">🛡️ Liquidity Constraints</div>
+                    <div class="card-badge" id="liquidity-status">OK</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Min Liquidity</div>
+                        <div class="stat-value">$100k</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Avg Depth (5)</div>
+                        <div class="stat-value" id="avg-depth-5">$250k</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Max Slippage</div>
+                        <div class="stat-value">20 bps</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Est. Slippage</div>
+                        <div class="stat-value" id="est-slippage">5 bps</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Opportunity Feed -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">🎯 Live Opportunities</div>
+                    <div class="card-badge" id="opp-count">0 Active</div>
+                </div>
+                <div class="opportunity-feed" id="opportunity-feed">
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        Scanning for opportunities...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const MAX_HISTORY_POINTS = 60; // 60 seconds of data
+        const UPDATE_INTERVAL = 1000; // Update every second
+
+        // State
+        const state = {
+            trading: false,
+            currentSymbol: 'BTC/USDT',
+            priceHistory: {
+                'Binance': [],
+                'Bybit': [],
+                'OKX': []
+            },
+            spreadHistory: [],
+            opportunities: [],
+            lastUpdate: Date.now()
+        };
+
+        // Initialize Charts
+        const priceChartCtx = document.getElementById('price-chart').getContext('2d');
+        const priceChart = new Chart(priceChartCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Binance',
+                        data: [],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Bybit',
+                        data: [],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'OKX',
+                        data: [],
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#e0e0e0' }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#9ca3af' },
+                        grid: { color: '#2a2a3e' }
+                    },
+                    y: {
+                        ticks: { color: '#9ca3af' },
+                        grid: { color: '#2a2a3e' }
+                    }
+                }
+            }
+        });
+
+        const spreadChartCtx = document.getElementById('spread-chart').getContext('2d');
+        const spreadChart = new Chart(spreadChartCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Best Spread (bps)',
+                    data: [],
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#e0e0e0' }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#9ca3af' },
+                        grid: { color: '#2a2a3e' }
+                    },
+                    y: {
+                        ticks: { color: '#9ca3af' },
+                        grid: { color: '#2a2a3e' },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Generate mock data (replace with real Tauri backend calls)
+        function generateMockData() {
+            const basePrice = 50000;
+            const timestamp = new Date().toLocaleTimeString();
+
+            // Update price history
+            const binancePrice = basePrice + (Math.random() - 0.5) * 10;
+            const bybitPrice = basePrice + (Math.random() - 0.5) * 15;
+            const okxPrice = basePrice + (Math.random() - 0.5) * 12;
+
+            // Update charts
+            if (priceChart.data.labels.length >= MAX_HISTORY_POINTS) {
+                priceChart.data.labels.shift();
+                priceChart.data.datasets.forEach(dataset => dataset.data.shift());
+                spreadChart.data.labels.shift();
+                spreadChart.data.datasets[0].data.shift();
+            }
+
+            priceChart.data.labels.push(timestamp);
+            priceChart.data.datasets[0].data.push(binancePrice);
+            priceChart.data.datasets[1].data.push(bybitPrice);
+            priceChart.data.datasets[2].data.push(okxPrice);
+            priceChart.update('none'); // Update without animation for smoothness
+
+            // Calculate spread
+            const prices = [binancePrice, bybitPrice, okxPrice];
+            const maxPrice = Math.max(...prices);
+            const minPrice = Math.min(...prices);
+            const spread = ((maxPrice - minPrice) / minPrice) * 10000; // in bps
+
+            spreadChart.data.labels.push(timestamp);
+            spreadChart.data.datasets[0].data.push(spread);
+            spreadChart.update('none');
+
+            // Update venue cards
+            updateVenueCards([
+                { name: 'Binance', bid: binancePrice - 0.5, ask: binancePrice + 0.5, liquidity: 150000 + Math.random() * 50000 },
+                { name: 'Bybit', bid: bybitPrice - 0.6, ask: bybitPrice + 0.6, liquidity: 120000 + Math.random() * 40000 },
+                { name: 'OKX', bid: okxPrice - 0.4, ask: okxPrice + 0.4, liquidity: 180000 + Math.random() * 60000 }
+            ]);
+
+            // Update orderbook depth
+            updateOrderbookDepth(binancePrice);
+
+            // Generate opportunity (occasionally)
+            if (Math.random() > 0.7 && state.trading) {
+                generateOpportunity(binancePrice, bybitPrice, okxPrice);
+            }
+        }
+
+        function updateVenueCards(venues) {
+            const container = document.getElementById('venue-grid');
+            container.innerHTML = '';
+
+            // Find best bid and ask
+            const bestBid = Math.max(...venues.map(v => v.bid));
+            const bestAsk = Math.min(...venues.map(v => v.ask));
+
+            venues.forEach(venue => {
+                const isBestBid = venue.bid === bestBid;
+                const isBestAsk = venue.ask === bestAsk;
+
+                const spread = venue.ask - venue.bid;
+                const spreadBps = (spread / venue.bid) * 10000;
+
+                const liquidityPct = Math.min((venue.liquidity / 200000) * 100, 100);
+
+                const card = document.createElement('div');
+                card.className = `venue-card ${isBestBid ? 'best-bid' : ''} ${isBestAsk ? 'best-ask' : ''}`;
+                card.innerHTML = `
+                    <div class="venue-name">${venue.name}</div>
+                    <div class="price-display">
+                        <span class="price-label">Bid</span>
+                        <span class="price-value price-bid">$${venue.bid.toFixed(2)}</span>
+                    </div>
+                    <div class="price-display">
+                        <span class="price-label">Ask</span>
+                        <span class="price-value price-ask">$${venue.ask.toFixed(2)}</span>
+                    </div>
+                    <div class="spread-value">Spread: ${spreadBps.toFixed(2)} bps</div>
+                    <div class="liquidity-meter">
+                        <div class="liquidity-label">
+                            <span>Liquidity</span>
+                            <span>$${(venue.liquidity / 1000).toFixed(0)}k</span>
+                        </div>
+                        <div class="liquidity-bar">
+                            <div class="liquidity-fill" style="width: ${liquidityPct}%"></div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function updateOrderbookDepth(midPrice) {
+            const bidsContainer = document.getElementById('bids-container');
+            const asksContainer = document.getElementById('asks-container');
+
+            bidsContainer.innerHTML = '';
+            asksContainer.innerHTML = '';
+
+            // Generate 10 levels each side
+            for (let i = 0; i < 10; i++) {
+                const bidPrice = midPrice - (i + 1) * 0.5;
+                const bidQty = (Math.random() * 2 + 0.5).toFixed(3);
+                const bidTotal = (bidPrice * bidQty).toFixed(0);
+                const bidWidth = Math.min(((bidQty / 3) * 100), 100);
+
+                const bidLevel = document.createElement('div');
+                bidLevel.className = 'depth-level';
+                bidLevel.style.setProperty('--width', `${bidWidth}%`);
+                bidLevel.innerHTML = `
+                    <span>$${bidPrice.toFixed(2)}</span>
+                    <span>${bidQty} BTC</span>
+                    <span>$${bidTotal}</span>
+                `;
+                bidLevel.querySelector('::before')?.style.setProperty('width', `${bidWidth}%`);
+                bidsContainer.appendChild(bidLevel);
+
+                const askPrice = midPrice + (i + 1) * 0.5;
+                const askQty = (Math.random() * 2 + 0.5).toFixed(3);
+                const askTotal = (askPrice * askQty).toFixed(0);
+                const askWidth = Math.min(((askQty / 3) * 100), 100);
+
+                const askLevel = document.createElement('div');
+                askLevel.className = 'depth-level';
+                askLevel.innerHTML = `
+                    <span>$${askPrice.toFixed(2)}</span>
+                    <span>${askQty} BTC</span>
+                    <span>$${askTotal}</span>
+                `;
+                asksContainer.appendChild(askLevel);
+            }
+        }
+
+        function generateOpportunity(binance, bybit, okx) {
+            const prices = [
+                { exchange: 'Binance', price: binance },
+                { exchange: 'Bybit', price: bybit },
+                { exchange: 'OKX', price: okx }
+            ];
+
+            prices.sort((a, b) => a.price - b.price);
+            const buy = prices[0];
+            const sell = prices[prices.length - 1];
+
+            const profitBps = ((sell.price - buy.price) / buy.price) * 10000;
+
+            if (profitBps > 3) { // Only show if > 3 bps
+                addOpportunity({
+                    buy: buy.exchange,
+                    sell: sell.exchange,
+                    buyPrice: buy.price,
+                    sellPrice: sell.price,
+                    profitBps: profitBps,
+                    timestamp: new Date()
+                });
+            }
+        }
+
+        function addOpportunity(opp) {
+            const feed = document.getElementById('opportunity-feed');
+
+            // Remove "scanning" message if present
+            if (feed.querySelector('div[style]')) {
+                feed.innerHTML = '';
+            }
+
+            const item = document.createElement('div');
+            item.className = `opportunity-item ${opp.profitBps > 10 ? 'high-profit' : ''}`;
+            item.innerHTML = `
+                <div class="opp-info">
+                    <div class="opp-route">
+                        Buy <span class="exchange-badge">${opp.buy}</span>
+                        → Sell <span class="exchange-badge">${opp.sell}</span>
+                    </div>
+                    <div class="opp-details">
+                        <span>Buy: $${opp.buyPrice.toFixed(2)}</span>
+                        <span>Sell: $${opp.sellPrice.toFixed(2)}</span>
+                        <span>Qty: 0.5 BTC</span>
+                    </div>
+                    <div class="opp-timestamp">${opp.timestamp.toLocaleTimeString()}</div>
+                </div>
+                <div class="opp-profit">
+                    ${opp.profitBps.toFixed(2)} bps
+                </div>
+            `;
+
+            feed.insertBefore(item, feed.firstChild);
+
+            // Keep only last 20 opportunities
+            while (feed.children.length > 20) {
+                feed.removeChild(feed.lastChild);
+            }
+
+            // Update count
+            document.getElementById('opp-count').textContent = `${feed.children.length} Active`;
+        }
+
+        // Symbol switching
+        document.querySelectorAll('.symbol-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.symbol-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                state.currentSymbol = tab.dataset.symbol;
+
+                // Clear charts
+                priceChart.data.labels = [];
+                priceChart.data.datasets.forEach(d => d.data = []);
+                spreadChart.data.labels = [];
+                spreadChart.data.datasets[0].data = [];
+            });
+        });
+
+        // Trading controls
+        document.getElementById('btn-start').addEventListener('click', () => {
+            state.trading = !state.trading;
+            const indicator = document.getElementById('status-indicator');
+            const btn = document.getElementById('btn-start');
+
+            if (state.trading) {
+                indicator.classList.add('status-active');
+                indicator.classList.remove('status-inactive');
+                btn.textContent = '⏸ Stop Trading';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-danger');
+            } else {
+                indicator.classList.remove('status-active');
+                indicator.classList.add('status-inactive');
+                btn.textContent = '▶ Start Trading';
+                btn.classList.remove('btn-danger');
+                btn.classList.add('btn-primary');
+            }
+        });
+
+        document.getElementById('btn-emergency-stop').addEventListener('click', () => {
+            if (confirm('EMERGENCY STOP: Halt all trading immediately?')) {
+                state.trading = false;
+                document.getElementById('status-indicator').classList.remove('status-active');
+                document.getElementById('status-indicator').classList.add('status-inactive');
+
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-danger';
+                alert.innerHTML = '<strong>⛔ EMERGENCY STOP ACTIVATED</strong> All trading halted.';
+                document.getElementById('alerts-container').appendChild(alert);
+            }
+        });
+
+        // Start updates
+        setInterval(generateMockData, UPDATE_INTERVAL);
+
+        // Initial load
+        generateMockData();
+    </script>
+</body>
+</html>
